@@ -45,7 +45,8 @@ namespace gladyrisk_lang.src
             { "jmptrue", TokenKind.JmpTrue },
             { "ret", TokenKind.Ret },
             { "call", TokenKind.Call },
-            { "use", TokenKind.Use }
+            { "use", TokenKind.Use },
+            { "enum", TokenKind.Enum }
         }.ToFrozenDictionary();
 
         public static string? GetKeywordFromKind(TokenKind kind)

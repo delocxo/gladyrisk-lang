@@ -15,4 +15,5 @@ namespace gladyrisk_lang.src.ast
     internal record JmpTrueStatement(string Label, Expression Expression, Position Position) : Statement(Position, "jmptrue");
     internal record CallStatement(CallExpression CallExpression, Position Position) : Statement(Position, "call");
     internal record RetStatement(Expression Expression, Position Position) : Statement(Position, "ret");
+    internal record EnumStatement(string Name, List<string> Enums, Position Position) : Statement(Position, "enum");
 }

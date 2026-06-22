@@ -47,6 +47,8 @@ namespace gladyrisk_lang.src
                 return ParseCall();
             if (Check(TokenKind.Ret))
                 return ParseRet();
+            if (Check(TokenKind.Enum))
+                return ParseEnum();
             if (Check(TokenKind.End))
                 throw new Error("Unexpected end", Current().Position);
             throw new Error("Invalid token", Current().Position);
@@ -208,6 +210,24 @@ namespace gladyrisk_lang.src
             Expect(TokenKind.Semicolon);
 
             return new RetStatement(expression, position);
+        }
+
+        EnumStatement ParseEnum()
+        {
+            Position position = Current().Position;
+
+            Next();
+
+            string name = ParseName();
+
+            if (Match(TokenKind.End))
+                return new EnumStatement(name, [], position);
+
+            List<string> enums = ParseParameters();
+
+            Expect(TokenKind.End);
+
+            return new EnumStatement(name, enums, position);
         }
 
         List<Statement> ParseBody()

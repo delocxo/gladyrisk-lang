@@ -71,7 +71,7 @@ namespace gladyrisk_lang.src
                 parserSw.Stop();
 
                 Stopwatch compileSw = Stopwatch.StartNew();
-                Compiler compiler = new Compiler([]);
+                Compiler compiler = new Compiler([], []);
                 Chunk program = compiler.CompileStatements(statements);
                 compileSw.Stop();
 

@@ -10,7 +10,7 @@ namespace gladyrisk_lang.src
         
         Fn, End, True, False, Null, Var, 
         Mov, Label, Jmp, JmpFalse, JmpTrue, Ret,
-        Call, Use,
+        Call, Use, Enum,
 
         Add, Sub, Mul, Div, Mod,
         Less, Greater, LessEqual, GreaterEqual,

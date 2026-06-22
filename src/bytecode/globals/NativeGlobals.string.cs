@@ -109,8 +109,8 @@ namespace gladyrisk_lang.src.bytecode.compiler
                 }))
             },
             {
-                "isAlphaNumeric",
-                Value.FromNative(new NativeObject("isAlphaNumeric", 1, ArgMode.Expect, (args, pos) =>
+                "isAlphaDigit",
+                Value.FromNative(new NativeObject("isAlphaDigit", 1, ArgMode.Expect, (args, pos) =>
                 {
                     string text = args[0].Expect(ValueKind.Text, pos).Text;
                     return new Value(text.All(x => (x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z') || (x >= '0' && x <= '9')));

@@ -77,6 +77,20 @@ namespace gladyrisk_lang.src.bytecode.runtime
         public int Count => Elements.Count;
     }
 
+    internal class EnumObject : RuntimeObject
+    {
+        public EnumObject(string enumName, string memberName, int raw)
+        {
+            EnumName = enumName;
+            MemberName = memberName;
+            Raw = raw;
+        }
+
+        public string EnumName { get; }
+        public string MemberName { get; }
+        public int Raw { get; }
+    }
+
     internal enum ValueKind
     {
         Null,
@@ -86,7 +100,8 @@ namespace gladyrisk_lang.src.bytecode.runtime
         Function,
         Native,
         Namespace,
-        Array
+        Array,
+        Enum
     }
 
     internal struct Value
@@ -177,6 +192,15 @@ namespace gladyrisk_lang.src.bytecode.runtime
             return value;
         }
 
+        public static Value FromEnum(EnumObject enumObject)
+        {
+            Value value = new Value(ValueKind.Enum)
+            {
+                Object = enumObject
+            };
+            return value;
+        }
+
         public static Value Null => new Value(ValueKind.Null);
 
         public ValueKind ValueKind { get; set; }
@@ -202,8 +226,16 @@ namespace gladyrisk_lang.src.bytecode.runtime
                 ValueKind.Function => $"<fn {ObjectAs<FunctionObject>().Name}(...)>",
                 ValueKind.Native => $"<native {ObjectAs<NativeObject>().Name}(...)>",
                 ValueKind.Array => $"[{string.Join(", ", ObjectAs<ArrayObject>().Elements)}]",
+                ValueKind.Enum => EnumToString(),
+                ValueKind.Namespace => $"<namespace {ObjectAs<NamespaceObject>().Name}>",
                 _ => "Void"
             };
+        }
+
+        string EnumToString()
+        {
+            var enumObject = ObjectAs<EnumObject>();
+            return $"{enumObject.EnumName}{Lexer.GetSymbolFromKind(TokenKind.Member) ?? "."}{enumObject.MemberName}";
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -221,8 +253,15 @@ namespace gladyrisk_lang.src.bytecode.runtime
                 (ValueKind.Function, ValueKind.Function) => ObjectAs<FunctionObject>() == other.ObjectAs<FunctionObject>(),
                 (ValueKind.Native, ValueKind.Native) => ObjectAs<NativeObject>() == other.ObjectAs<NativeObject>(),
                 (ValueKind.Array, ValueKind.Array) => ObjectAs<ArrayObject>() == other.ObjectAs<ArrayObject>(),
+                (ValueKind.Enum, ValueKind.Enum) => CompareEnums(other.ObjectAs<EnumObject>()),
                 _ => false
             };
+        }
+
+        bool CompareEnums(EnumObject other)
+        {
+            var thisEnumObject = ObjectAs<EnumObject>();
+            return thisEnumObject.EnumName == other.EnumName && thisEnumObject.MemberName == other.MemberName;
         }
     }
 }

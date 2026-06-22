@@ -29,6 +29,18 @@ namespace gladyrisk_lang.src.bytecode.compiler
         public int LocalCount { get; }
         public int MaxRegisters { get; }
     }
+    
+    internal sealed class EnumDefinition
+    {
+        public EnumDefinition(string name, HashSet<string> enums)
+        {
+            Name = name;
+            Enums = enums;
+        }
+
+        public string Name { get; }
+        public HashSet<string> Enums { get; }
+    }
 
     internal class Compiler
     {
@@ -40,6 +52,7 @@ namespace gladyrisk_lang.src.bytecode.compiler
         List<Position> _positions = new List<Position>();
         List<Value> _constants = new List<Value>();
         Dictionary<int, string> _jumps = new Dictionary<int, string>();
+        Dictionary<string, EnumDefinition> _enumDefinitions = new Dictionary<string, EnumDefinition>();
 
         public FunctionInfo? Main = null;
 
@@ -57,10 +70,11 @@ namespace gladyrisk_lang.src.bytecode.compiler
             return reg;
         }
 
-        public Compiler(List<FunctionInfo> functionInfos, bool atGlobal = true)
+        public Compiler(List<FunctionInfo> functionInfos, Dictionary<string, EnumDefinition> enumDefinitions, bool atGlobal = true)
         {
             _atGlobal = atGlobal;
             _functionInfos = functionInfos;
+            _enumDefinitions = enumDefinitions;
         }
 
         public Chunk CompileStatements(List<Statement> statements)
@@ -71,9 +85,7 @@ namespace gladyrisk_lang.src.bytecode.compiler
                 {
                     if (!_atGlobal)
                         throw new Error("Functions can only be declared at the top level", fnStatement.Position);
-                    int index = _functionInfos.FindIndex(x => x.Name == fnStatement.Name);
-                    if (index != -1)
-                        throw new Error($"Function '{fnStatement.Name}' already exist", fnStatement.Position);
+                    ValidateName(fnStatement.Name, fnStatement.Position);
                     if (fnStatement.Body.Count == 0 || fnStatement.Body[fnStatement.Body.Count - 1] is not RetStatement)
                         throw new Error($"Function '{fnStatement.Name}' must explicitly return a value", fnStatement.Position);
                     _functionInfos.Add(new FunctionInfo(Chunk.Empty(), fnStatement.Name, fnStatement.Parameters.Count));
@@ -84,10 +96,22 @@ namespace gladyrisk_lang.src.bytecode.compiler
                         throw new Error($"Label '{labelStatement.Label}' already exist", labelStatement.Position);
                     _labels.Add(labelStatement.Label, 0); // Placeholder, will be patched later
                 }
+                else if (x is EnumStatement enumStatement)
+                {
+                    if (!_atGlobal)
+                        throw new Error("Enums can only be declared at the top level", enumStatement.Position);
+                    ValidateName(enumStatement.Name, enumStatement.Position);
+                    HashSet<string> enums = new HashSet<string>();
+                    for (int i = 0; i < enumStatement.Enums.Count; i++)
+                        if (!enums.Add(enumStatement.Enums[i]))
+                            throw new Error($"'{enumStatement.Enums[i]}' is a duplicate enum value", enumStatement.Position);
+                    var enumDefinition = new EnumDefinition(enumStatement.Name, enums);
+                    _enumDefinitions.Add(enumDefinition.Name, enumDefinition);
+                }
             });
             statements.ForEach(x =>
             {
-                if (x is FnStatement || x is LabelStatement)
+                if (x is FnStatement || x is LabelStatement || x is EnumStatement)
                     return;
                 if ((x is JmpStatement jmpStatement) && !_atGlobal)
                 {
@@ -125,7 +149,7 @@ namespace gladyrisk_lang.src.bytecode.compiler
         {
             if (statement is FnStatement fnStatement)
             {
-                Compiler compiler = new Compiler(_functionInfos, false);
+                Compiler compiler = new Compiler(_functionInfos, _enumDefinitions, false);
                 for (int i = 0; i < fnStatement.Parameters.Count; i++)
                     compiler.Locals[fnStatement.Parameters[i]] = compiler.NextSlot++;
                 Chunk program = compiler.CompileStatements(fnStatement.Body);
@@ -258,6 +282,18 @@ namespace gladyrisk_lang.src.bytecode.compiler
             }
             else if (expression is MemberExpression memberExpression)
             {
+                if (memberExpression.Target is NameExpression name)
+                {
+                    if (_enumDefinitions.TryGetValue(name.Name, out var definition))
+                    {
+                        if (!definition.Enums.Contains(memberExpression.Member))
+                            throw new Error($"'{memberExpression.Member}' does not exist in enum '{definition.Name}'", memberExpression.Position);
+                        int enumResult = NewRegister();
+                        Value enumValue = Value.FromEnum(new EnumObject(definition.Name, memberExpression.Member, 0 /* Zero for now */));
+                        Emit(new Instruction(AddPosition(memberExpression.Position), OpCode.LoadConst, enumResult, AddConstant(enumValue)));
+                        return enumResult;
+                    }
+                }
                 int target = CompileExpression(memberExpression.Target);
                 int result = NewRegister();
                 Emit(new Instruction(AddPosition(memberExpression.Position), OpCode.GetMember, result, target, AddConstant(new Value(memberExpression.Member))));
@@ -369,6 +405,8 @@ namespace gladyrisk_lang.src.bytecode.compiler
                 throw new Error($"'{name}' is already a function");
             if (NativeGlobals.ValueGlobals.ContainsKey(name))
                 throw new Error($"'{name}' is already a global", position);
+            if (_enumDefinitions.ContainsKey(name))
+                throw new Error($"'{name}' is already a enum", position);
         }
     }
 }
