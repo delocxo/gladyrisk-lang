@@ -63,7 +63,8 @@ namespace gladyrisk_lang.src.bytecode.compiler
         public static Dictionary<string, Value> ValueGlobals => new Dictionary<string, Value>()
         {
             { "core", Core },
-            { "string", String }
+            { "string", String },
+            { "array", Array }
         };
     }
 }

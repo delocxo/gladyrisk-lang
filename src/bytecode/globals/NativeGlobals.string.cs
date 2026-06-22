@@ -92,6 +92,54 @@ namespace gladyrisk_lang.src.bytecode.compiler
                     return Value.FromArray(new ArrayObject(charArray));
                 }))
             },
+            {
+                "isDigit",
+                Value.FromNative(new NativeObject("isDigit", 1, ArgMode.Expect, (args, pos) =>
+                {
+                    string text = args[0].Expect(ValueKind.Text, pos).Text;
+                    return new Value(text.All(x => x >= '0' && x <= '9'));
+                }))
+            },
+            {
+                "isAlpha",
+                Value.FromNative(new NativeObject("isAlpha", 1, ArgMode.Expect, (args, pos) =>
+                {
+                    string text = args[0].Expect(ValueKind.Text, pos).Text;
+                    return new Value(text.All(x => (x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z')));
+                }))
+            },
+            {
+                "isAlphaNumeric",
+                Value.FromNative(new NativeObject("isAlphaNumeric", 1, ArgMode.Expect, (args, pos) =>
+                {
+                    string text = args[0].Expect(ValueKind.Text, pos).Text;
+                    return new Value(text.All(x => (x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z') || (x >= '0' && x <= '9')));
+                }))
+            },
+            {
+                "trim",
+                Value.FromNative(new NativeObject("trim", 1, ArgMode.Expect, (args, pos) =>
+                {
+                    string text = args[0].Expect(ValueKind.Text, pos).Text;
+                    return new Value(text.Trim());
+                }))
+            },
+            {
+                "trimStart",
+                Value.FromNative(new NativeObject("trimStart", 1, ArgMode.Expect, (args, pos) =>
+                {
+                    string text = args[0].Expect(ValueKind.Text, pos).Text;
+                    return new Value(text.TrimStart());
+                }))
+            },
+            {
+                "trimEnd",
+                Value.FromNative(new NativeObject("trimEnd", 1, ArgMode.Expect, (args, pos) =>
+                {
+                    string text = args[0].Expect(ValueKind.Text, pos).Text;
+                    return new Value(text.TrimEnd());
+                }))
+            },
         }));
     }
 }

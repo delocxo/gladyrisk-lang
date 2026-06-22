@@ -1,7 +1,6 @@
 ﻿using gladyrisk_lang.src.ast;
 using gladyrisk_lang.src.bytecode.runtime;
 using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Xml.Linq;
 
@@ -12,7 +11,7 @@ namespace gladyrisk_lang.src.bytecode.compiler
         public Chunk(List<Instruction> instructions, List<Position> positions, List<Value> constants, List<FunctionInfo> functionInfos, FunctionInfo? main, int localCount, int maxRegisters)
         {
             Instructions = instructions;
-            Positions = positions;
+            Positions = positions.ToArray();
             Constants = constants.ToArray();
             FunctionInfos = functionInfos;
             LocalCount = localCount;
@@ -23,7 +22,7 @@ namespace gladyrisk_lang.src.bytecode.compiler
         public static Chunk Empty() => new Chunk([], [], [], [], null, 0, 0);
 
         public List<Instruction> Instructions { get; }
-        public List<Position> Positions { get; }
+        public Position[] Positions { get; }
         public Value[] Constants { get; }
         public List<FunctionInfo> FunctionInfos { get; }
         public FunctionInfo? Main { get; }
@@ -183,6 +182,16 @@ namespace gladyrisk_lang.src.bytecode.compiler
                 int register = CompileExpression(retStatement.Expression);
                 Emit(new Instruction(AddPosition(retStatement.Position), OpCode.Ret, register));
             }
+            else if (statement is IndexMovStatement indexMovStatement)
+            {
+                IndexExpression indexExpression = indexMovStatement.IndexExpression;
+                int target = CompileExpression(indexExpression.Target);
+                int index = CompileExpression(indexExpression.Index);
+                int value = CompileExpression(indexMovStatement.Expression);
+                int result = NewRegister();
+                Emit(new Instruction(AddPosition(indexExpression.Position), OpCode.SetIndex, result, target, index, value));
+            }
+        
             _currentRegister = 0;
         }
 
@@ -252,6 +261,14 @@ namespace gladyrisk_lang.src.bytecode.compiler
                 int target = CompileExpression(memberExpression.Target);
                 int result = NewRegister();
                 Emit(new Instruction(AddPosition(memberExpression.Position), OpCode.GetMember, result, target, AddConstant(new Value(memberExpression.Member))));
+                return result;
+            }
+            else if (expression is IndexExpression indexExpression)
+            {
+                int target = CompileExpression(indexExpression.Target);
+                int index = CompileExpression(indexExpression.Index);
+                int result = NewRegister();
+                Emit(new Instruction(AddPosition(indexExpression.Position), OpCode.GetIndex, result, target, index));
                 return result;
             }
             else if (expression is UnaryExpression unaryExpression)

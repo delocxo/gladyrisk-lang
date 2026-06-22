@@ -44,7 +44,7 @@ namespace gladyrisk_lang.src
         }
 
         Position? _position;
-        string _caller;
+        string _caller = string.Empty;
 
         public Error(string message, Position position, [CallerMemberName] string callerName = "") : base(message)
         {

@@ -1,6 +1,7 @@
 ﻿using gladyrisk_lang.src.bytecode.runtime;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace gladyrisk_lang.src.bytecode.compiler
@@ -121,7 +122,39 @@ namespace gladyrisk_lang.src.bytecode.compiler
                     else
                         return new Value(value.ObjectAs<ArrayObject>().Count);
                 }))
-            }
+            },
+            {
+                "parseNumber",
+                Value.FromNative(new NativeObject("parseNumber", 1, ArgMode.Expect, (args, pos) =>
+                {
+                    Value value = args[0].ExpectTypes(pos, ValueKind.Text, ValueKind.Bool);
+                    if (value.Check(ValueKind.Text))
+                    {
+                        string text = value.Text;
+                        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
+                            throw new Error("Failed to convert string to number", pos);
+                        return new Value(result);
+                    }
+                    bool boolean = value.Bool;
+                    return new Value(boolean ? 1 : 0);
+                }))
+            },
+            {
+                "tryParseNumber",
+                Value.FromNative(new NativeObject("tryParseNumber", 1, ArgMode.Expect, (args, pos) =>
+                {
+                    Value value = args[0].ExpectTypes(pos, ValueKind.Text, ValueKind.Bool);
+                    if (value.Check(ValueKind.Text))
+                    {
+                        string text = value.Text;
+                        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
+                            return Value.Null;
+                        return new Value(result);
+                    }
+                    bool boolean = value.Bool;
+                    return new Value(boolean ? 1 : 0);
+                }))
+            },
         }));
     }
 }

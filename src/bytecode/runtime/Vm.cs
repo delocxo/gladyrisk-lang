@@ -89,6 +89,45 @@ namespace gladyrisk_lang.src.bytecode.runtime
                             throw new Error($"Type: {target.ValueKind} has no members", GetPosition(instruction.PositionIndex));
                         }
 
+                    case OpCode.GetIndex:
+                        {
+                            ref Position pos = ref GetPosition(instruction.PositionIndex);
+                            int result = instruction.A;
+                            ref Value target = ref frame.Registers[instruction.B];
+                            target.ExpectTypes(pos, ValueKind.Array, ValueKind.Text);
+                            int index = frame.Registers[instruction.C].GetInt(pos);
+                            if (target.Check(ValueKind.Array))
+                            {
+                                var array = target.ObjectAs<ArrayObject>();
+                                if (index < 0 || index >= array.Count)
+                                    throw new Error("Index out of bounds", pos);
+                                frame.Registers[result] = array.Elements[index];
+                            }
+                            else
+                            {
+                                string text = target.Text;
+                                if (index < 0 || index >= text.Length)
+                                    throw new Error("Index out of bounds", pos);
+                                frame.Registers[result] = new Value(text[index].ToString());
+                            }
+                            break;
+                        }
+
+                    case OpCode.SetIndex:
+                        {
+                            ref Position pos = ref GetPosition(instruction.PositionIndex);
+                            int result = instruction.A;
+                            ref Value target = ref frame.Registers[instruction.B];
+                            target.Expect(ValueKind.Array, pos);
+                            int index = frame.Registers[instruction.C].GetInt(pos);
+                            ref Value value = ref frame.Registers[instruction.D];
+                            var array = target.ObjectAs<ArrayObject>();
+                            if (index < 0 || index >= array.Count)
+                                throw new Error("Index out of bounds", pos);
+                            array.Elements[index] = value;
+                            break;
+                        }
+
                     case OpCode.MakeArray:
                         {
                             int result = instruction.A;
@@ -102,7 +141,7 @@ namespace gladyrisk_lang.src.bytecode.runtime
                     case OpCode.Call:
                         {
                             var result = instruction.A;
-                            var callee = frame.Registers[instruction.B];
+                            ref var callee = ref frame.Registers[instruction.B];
                             if (callee.Check(ValueKind.Function))
                             {
                                 FunctionObject functionObject = callee.ObjectAs<FunctionObject>();
@@ -315,7 +354,7 @@ namespace gladyrisk_lang.src.bytecode.runtime
 
                     case OpCode.Ret:
                         {
-                            Value result = frame.Registers[instruction.A];
+                            ref Value result = ref frame.Registers[instruction.A];
 
                             callFrames.Pop();
 
@@ -330,7 +369,7 @@ namespace gladyrisk_lang.src.bytecode.runtime
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            Position GetPosition(int index) => callFrames.Peek().Program.Positions[index];
+            ref Position GetPosition(int index) => ref callFrames.Peek().Program.Positions[index];
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             void ValidateNativeArgs(int got, int arity, int maxArity, ArgMode argMode, string name, Position position)

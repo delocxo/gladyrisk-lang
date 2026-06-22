@@ -110,6 +110,8 @@ namespace gladyrisk_lang.src
 
             if (assignee is NameExpression nameExpression)
                 return new VarMovStatement(nameExpression.Name, expression, position);
+            else if (assignee is IndexExpression indexExpression)
+                return new IndexMovStatement(indexExpression, expression, position);
 
             throw new Error("Invalid mov target", position);
         }
@@ -294,9 +296,11 @@ namespace gladyrisk_lang.src
             }
             else if (Match(TokenKind.LeftBracket))
             {
+                if (Match(TokenKind.RightBracket))
+                    return new ArrayExpression([], token.Position);
                 List<Expression> elements = ParseExpressions();
                 Expect(TokenKind.RightBracket);
-                return new ArrayExpression(elements, Current().Position);
+                return new ArrayExpression(elements, token.Position);
             }
 
             throw new Error("Invalid expression", token.Position);
@@ -305,7 +309,7 @@ namespace gladyrisk_lang.src
         Expression ParsePostfix()
         {
             Expression left = ParsePrimary();
-            while (Check(TokenKind.Member))
+            while (Check(TokenKind.Member, TokenKind.LeftBracket))
             {
                 if (Check(TokenKind.Member))
                 {
@@ -316,6 +320,20 @@ namespace gladyrisk_lang.src
                     string member = ParseName();
 
                     left = new MemberExpression(left, member, position);
+                    continue;
+                }
+
+                if (Check(TokenKind.LeftBracket))
+                {
+                    Position position = Current().Position;
+
+                    Next();
+
+                    Expression index = ParseExpression();
+
+                    Expect(TokenKind.RightBracket);
+
+                    left = new IndexExpression(left, index, position);
                     continue;
                 }
 

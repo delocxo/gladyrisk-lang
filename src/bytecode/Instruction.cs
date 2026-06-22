@@ -12,6 +12,8 @@ namespace gladyrisk_lang.src.bytecode
         LoadFunction,
 
         GetMember,
+        GetIndex,
+        SetIndex,
         MakeArray,
 
         Call,
@@ -70,11 +72,22 @@ namespace gladyrisk_lang.src.bytecode
             C = c;
         }
 
+        public Instruction(int positionIndex, OpCode opCode, int a, int b, int c, int d) : this()
+        {
+            PositionIndex = positionIndex;
+            OpCode = opCode;
+            A = a;
+            B = b;
+            C = c;
+            D = d;
+        }
+
         public int PositionIndex { get; set; }
         public OpCode OpCode { get; set; }
         public int A { get; set; }
         public int B { get; set; }
         public int C { get; set; }
+        public int D { get; set; }
         public int[] Args { get; set; } = [];
 
         public static Instruction Call(int dest, int callee, int[] args, int pos)
